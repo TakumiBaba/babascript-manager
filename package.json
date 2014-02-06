@@ -1,5 +1,5 @@
 {
-  "name": "coah",
+  "name": "babascriptmanager",
   "version": "0.1.0",
   "scripts": {
     "prestart": "grunt build",
@@ -22,7 +22,10 @@
     "coffee-errors": "~0.8.5",
     "grunt": "~0.4.1",
     "grunt-cli": "~0.1.11",
-    "grunt-notify": "~0.2.17"
+    "grunt-notify": "~0.2.17",
+    "aws-sdk": "~2.0.0-rc9",
+    "connect-mongo": "~0.4.0",
+    "underscore": "~1.5.2"
   },
   "devDependencies": {
     "supertest": "~0.8.0",

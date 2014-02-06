@@ -2,14 +2,16 @@ mongoose = require 'mongoose'
 debug = require('debug')('coah:models:user')
 
 UserModel = new mongoose.Schema
+  uuid: type: String
+  registrationId: type: String
+  name: type: String
+  deviceType: type: String # APNs, GCM など
+  groups: type: [GroupModel]
+
+GroupModel = new mongoose.Schema
   id: type: Number, unique: yes
   name: type: String
-  icon: type: String
-  service: type: mongoose.Schema.Types.Mixed
-  updated: type: Date
-  created: type: Date
-,
-  versionKey: no
+  users: type: [UserModel]
 
 UserModel.statics.findOrCreateByTwitter = (token, secret, profile, done) ->
   now = new Date
@@ -20,7 +22,7 @@ UserModel.statics.findOrCreateByTwitter = (token, secret, profile, done) ->
       user.service = []
     user.name = profile.username
     user.icon = profile.photos[0].value
-    user.updated = now
+    user.updated = nowf
     for service in user.service
       return user.save done if service.name is 'twitter'
     console.log user
@@ -30,4 +32,5 @@ UserModel.statics.findOrCreateByTwitter = (token, secret, profile, done) ->
       secret: secret
     user.save done
 
-exports.User = mongoose.model 'users', UserModel
+exports.User = mongoose.model 'user', UserModel
+exports.Group = mongoose.model 'groups', GroupModel

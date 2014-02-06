@@ -6,13 +6,18 @@ http = require 'http'
 debug = require('debug')('coah')
 express = require 'express'
 mongoose = require 'mongoose'
+MongoStore = require("connect-mongo")(express)
 direquire = require 'direquire'
+AWS = require 'aws-sdk'
+
 
 # Database
 
 if process.env.MONGO
   mongoose.connect process.env.MONGO
   debug "mongo connect to #{process.env.MONGO}"
+
+AWS.config.loadFromPath path.resolve 'config', 'aws.json'
 
 # Application
 
@@ -21,6 +26,7 @@ app.disable 'x-powerd-by'
 app.set 'events', direquire path.resolve 'events'
 app.set 'models', direquire path.resolve 'models'
 app.set 'helper', direquire path.resolve 'helper'
+app.set 'aws', AWS
 app.set 'views', path.resolve 'views'
 app.set 'view engine', 'jade'
 app.use express.favicon()
@@ -39,6 +45,16 @@ else
 
 if process.env.NODE_ENV isnt 'production'
   debug "using error handler"
+
+app.use express.session
+  secret: path.resolve("config", "env.json").secret
+  store: new MongoStore
+    db: 'session'
+    host: 'localhost'
+    clear_interval: 60*60
+  coolie:
+    httpOnly: false
+    maxAge: new Date(Date.now() + 60 * 60 * 1000)
 
 # Server
 

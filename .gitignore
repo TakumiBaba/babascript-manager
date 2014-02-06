@@ -7,4 +7,5 @@ node_modules
 dist
 public
 config/env.json
+config/aws.json
 npm-debug.log
