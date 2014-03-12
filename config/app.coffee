@@ -6,7 +6,7 @@ http = require 'http'
 debug = require('debug')('coah')
 express = require 'express'
 mongoose = require 'mongoose'
-MongoStore = require("connect-mongo")(express)
+MongoStore = (require "connect-mongo") express
 direquire = require 'direquire'
 AWS = require 'aws-sdk'
 
@@ -33,8 +33,25 @@ app.use express.favicon()
 app.use express.logger 'dev' unless process.env.NODE_ENV is 'test'
 app.use express.json()
 app.use express.urlencoded()
+app.use express.cookieParser()
 app.use express.methodOverride()
+
+app.use (req, res, next)->
+  res.setHeader "Access-Control-Allow-Origin", "*"
+  next()
+
+app.use express.session
+  secret: path.resolve("config", "env.json").secret || "hogefuga"
+  store: new MongoStore
+    db: 'session'
+    host: 'localhost'
+    clear_interval: 60*60*10
+  cookie:
+    httpOnly: false
+    maxAge: new Date(Date.now() + 60 * 60 * 1000)
+    
 app.use app.router
+
 if process.env.NODE_ENV is 'development'
   app.use express.static path.resolve 'dist'
   app.use (req, res) ->
@@ -46,23 +63,21 @@ else
 if process.env.NODE_ENV isnt 'production'
   debug "using error handler"
 
-app.use express.session
-  secret: path.resolve("config", "env.json").secret
-  store: new MongoStore
-    db: 'session'
-    host: 'localhost'
-    clear_interval: 60*60
-  coolie:
-    httpOnly: false
-    maxAge: new Date(Date.now() + 60 * 60 * 1000)
+
 
 # Server
-
+  
 server = exports.server = http.createServer app
+io     = require("socket.io").listen server
+linda  = require("linda-socket.io").Linda.listen {io: io, server: server}
+app.set 'linda', linda
+process.linda = linda
+fluentd = app.get("helper").FluentdLinda app
 
 # Routes
 
 route = require path.resolve 'config', 'routes'
 
 route.http app
+route.ws app, io
 

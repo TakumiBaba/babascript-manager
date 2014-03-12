@@ -25,7 +25,11 @@
     "grunt-notify": "~0.2.17",
     "aws-sdk": "~2.0.0-rc9",
     "connect-mongo": "~0.4.0",
-    "underscore": "~1.5.2"
+    "underscore": "~1.5.2",
+    "linda-socket.io": "*",
+    "socket.io": "~0.9.16",
+    "socket.io-client": "~0.9.16",
+    "moment": "~2.5.1"
   },
   "devDependencies": {
     "supertest": "~0.8.0",

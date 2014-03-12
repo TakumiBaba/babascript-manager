@@ -4,6 +4,7 @@
 node_modules
 
 *.map
+*.p12
 dist
 public
 config/env.json

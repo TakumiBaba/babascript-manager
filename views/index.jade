@@ -1,6 +1,159 @@
-extends layout
+doctype html
+html
+  head
+    //- meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1')
+    link(rel='stylesheet', href='/css/style.css')
+    link(rel='stylesheet', href='//netdna.bootstrapcdn.com/bootstrap/3.1.0/css/bootstrap.min.css')
 
-block content
-  h1= title
-  p Welcome to #{title}
-  p: a(href='/username') Your page
+  body
+    #header-view.header.navbar.navbar-inverse.navbar-fixed-top(role="navigation")
+      .container-fluid
+        .navbar-header
+          a.navbar-brand(href="/") BabaScript Manager
+        .navbar-collapse.collapse
+          ul.nav.navbar-nav
+            li: a(data-toggle="modal", data-target="#group-create") new
+            li.dropdown
+              a.dropdown-toggle(data-toggle="dropdown")
+                | グループ一覧
+                b.caret
+              ul.groups.dropdown-menu
+          form.navbar-form
+            input.form-control.group-search(type="text", placeholder="search group")
+    .container-fluid
+      .row
+        #main-view.col-md-6.col-md-offset-3
+    #group-create.modal.fade(tabindex='-1', role='dialog', aria-hidden='true')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h4.modal-title 新しくグループを作る
+          .modal-body
+            label.control-label(for="group-name") グループ名
+            input.group-name.form-control(type="text", placeholder="group name")
+          .modal-footer
+            button.btn.btn-default(type="button", data-dismiss="modal") close
+            button.create-group.btn.btn-primary(type="button") グループを作る
+    script(src='//cdnjs.cloudflare.com/ajax/libs/jquery/2.0.3/jquery.min.js')
+    script(src='//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js')
+    script(src='//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.1.0/backbone-min.js')
+    script(src='//netdna.bootstrapcdn.com/bootstrap/3.1.0/js/bootstrap.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/linda/linda-socket.io.js')
+    //- script(src='/js/ace/ace.js')
+    script(src='/js/script.js')
+
+    script#user-view(type="text/template")
+      .user.panel.panel-info.panel-default
+        .panel-heading
+          | hogefuga
+        .panel-body
+          | いえーい
+    script#group-view-member(type="text/template")
+      .members.panel.panel-info.panel-default
+        .panel-heading
+          | メンバー
+        .panel-body
+        table.table
+          thead
+            tr
+              th 
+              th name
+              th task
+              th status
+              //- //- waiting, running, sleeping
+          tbody.member-list
+            //- <% _.each(members, function(member, i){ %>
+            //- <% console.log("member-hoge"); %>
+            //- <% console.log(member); %>
+            //- tr
+            //-   th
+            //-     button.btn.btn-default.btn-xs.remove-member(type="button")
+            //-       span.glyphicon.glyphicon-minus
+            //-   th.member-id <%= member.get("id") %>
+            //-   th <%= member.get("deviceType") %>
+            //-   th <%= member.get("uuid") %>
+            //- <% }) %>
+          tbody.under
+            tr
+              th
+                button.btn.btn-default.btn-xs.add-member(type="button")
+                  span.glyphicon.glyphicon-plus
+              th(colspan=3)
+                input.new-member-name.input-sm.form-control(type="text", placeholder="put user name")
+        //- form(role="form")
+        //-   div.input-group
+        //-     span.input-group-btn
+        //-       button.btn.btn-default +
+        //-     input.form-control(type="text", placeholder="put user name")
+            //- tr
+            //-   th: button.add-member.btn.btn-default
+            //-     span.glyphicon.glyphicon-plus
+            //-   th
+            //-   th
+    script#group-view-member-element(type="text/template")
+      tr
+        th
+          button.btn.btn-default.btn-xs.remove-member(type="button")
+            span.glyphicon.glyphicon-minus
+        th.member-id <%= id %>
+        //- th <%= deviceType %>
+        //- th <%= uuid %>
+    script#group-view-analytics(type="text/template")
+      .members.panel.panel-info.panel-default
+        .panel-heading
+          | タスク系
+        .panel-body.task-list
+          
+    script#group-view-program(type="text/template")
+      .members.panel.panel-info.panel-default
+        .panel-heading
+          | プログラム
+        .panel-body
+          //- #editor.editor
+          
+
+    script#group-view(type="text/template")
+      .row
+        .sidebar.col-sm-3.col-md-2
+          ul.nav.nav-sidebar
+            li.member: a(href="member") メンバー
+            li.analytics: a(href="analytics") 解析
+            li.program: a(href="program") プログラム
+        #content-view.col-sm-9.col-sm-offse-3.col-md-10.col-md-offse-2.main
+    //- script#user-view(type="text/template")
+    //-   .row
+    //-     .class.panel.panel-default
+    //-       .class.panel-body
+    //-         Basic panel example
+    script#group-element(type="text/template")
+      li: a(href!='/groups/<%= name %>') <%= name %>
+    script#group-member-view(type="text/template")
+      .panel.panel-default
+        .panel-heading
+          | メンバー
+        .panel-body
+          | ほげふがほげふが
+        table.table
+          thead
+            tr
+              th name
+              th deviceType
+              th uuid
+          tbody
+            <% _.each(members, function(member){ %>
+            <% console.log("hoge", member); %>
+            tr
+              th <%= member.id %>
+              th <%= member.deviceType %>
+              th <%= member.uuid %>
+            <% }) %>
+
+    script#login-view(type="text/template")
+      form.form-signin
+        h2 login or sign up
+        input.login-id.form-control(type="text", placeholder="id")
+        input.login-pass.form-control(type="text", placeholder="pass")
+        button.login.btn.btn-lg.btn-primary.btn-block login
+        button.signup.btn.btn-lg.btn-primary.btn-block signup

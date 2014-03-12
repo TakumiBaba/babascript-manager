@@ -8,11 +8,17 @@ socket.ioで通信させる？
 
 ## models
 
+Device
+- uuid
+- deviceType
+- endpoint
+- user
+
 User
-- uuid:String
-- name:String
-- deviceType:String
-- notificationId:String
+- id
+- password
+- devices
+- group
 
 Group
 - id:String
@@ -23,7 +29,7 @@ Data
 - Mix
 
 
-## Routing
+## API
 
 全て json を返す
 ### グループ系API

@@ -1,0 +1,3 @@
+exports.Device = (app)->
+
+  {}
