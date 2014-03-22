@@ -27,6 +27,7 @@ exports.http = (app) ->
   app.delete "/api/user", User.remove
   app.get  "/api/user/:id", User.read
   app.post "/api/user/:uuid/addgroup", User.addGroup
+  app.get "/api/user/:id/group", User.Group.read
 
 # Group系
   app.post "/api/group/new", Group.create
@@ -56,7 +57,7 @@ exports.http = (app) ->
   app.get "/api/program/:id", Program.read
 
 # Noraml Routing
-  app.get "/(groups|login)/(*)", View.index
+  app.get "/(groups|login)(/*)", View.index
   app.get "/", View.index
 
 # LindaWrite

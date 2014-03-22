@@ -56,6 +56,19 @@ exports.User = (app) ->
         throw err if err
         res.json user
 
+  Group:
+    read: (req, res, next)->
+      id = req.params.id
+      q = User.findOne({id: id})
+      q.populate("groups")
+      q.exec (err, user)->
+        names = _.pluck user.groups, "name"
+        g = Group.find({name: {$in: names}})
+        g.populate("users")
+        g.exec (err, groups)->
+          throw err if err
+          res.json groups
+
   DEBUG:
     createUser:(req, res, next) ->
       a = ["a", "b", "c", "d", "e", "f", "g"]

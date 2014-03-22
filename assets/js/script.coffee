@@ -11,6 +11,7 @@ class Application extends Backbone.Router
 
   status: ""
   api: "http://localhost:3000/api"
+  linda: null
 
   initialize: ->
     $.ajax
@@ -18,27 +19,22 @@ class Application extends Backbone.Router
     .done (data) =>
       console.log "app initialize done"
       @user = new User()
-      @headerView = new HeaderView @user
-      @mainView = new MainView @user
+      @groups = new Groups()
       @linda = new Linda().connect io.connect "http://localhost:3000"
+      @sidebar = new Sidebar @user
+      @mainView = new MainView @user
       @linda.io.once "connect", =>
-        console.log "connect"
         Backbone.history.start
           pushState: true
-      # @user.id = data.session.user.id
-      console.log "ie-i"
-      @user.id = "baba"
-      @user.fetch()
-      # socket = io.connect "http://localhost:3000"
-      # @linda = (new Linda()).connect socket
-      # App.taskChecker = @linda.tuplespace "active_task"
-      console.log "app initialize"
-      console.log App.taskChecker
-      # if data.status is true
-        # @user.id = data.session.user.id
-        # @user.fetch()
-      # else
-      #   @navigate "/login", yes
+        if data.status is true
+          id = data.session.user.id
+          @user.id = id
+          @groups.url = "/api/user/#{id}/group"
+          @user.fetch()
+          @groups.fetch()
+        else
+          @navigate "/login", yes
+        
       $(document).delegate "a", "click", (event)->
         event.preventDefault()
         href = $(@).attr "href"
@@ -58,13 +54,29 @@ class Application extends Backbone.Router
   createGroup: ->
 
   group: (name, type)->
-    console.log "group view!!"
-    console.log name, type
     @mainView.group name
 
   login: ->
     @mainView.login()
     console.log "login"
+
+class Sidebar extends Backbone.View
+  el: "#sidebar"
+
+  initialize: (@user)->
+    @listenTo @user, "change", @change
+    @groupList = $(".group-list")
+    @groupCreateModal = new GroupCreateModalView()
+
+  appendGroupToList: (model)->
+    group = new GroupElement model
+    @groupList.append group.el
+
+  change: (model)->
+    $(@.el).find("h3").html model.get("id")
+    @groupList.empty()
+    for g in model.get "groups"
+      @appendGroupToList g
 
 class HeaderView extends Backbone.View
   el: "#header-view"
@@ -107,18 +119,27 @@ class MainView extends Backbone.View
   el: "#main-view"
 
   initialize: (@user)->
-    @groupView = new GroupView()
+    @groupViews = {}
     @userView  = new UserView()
+    @listenTo App.groups, "add", @createGroupView
+    @listenTo App.groups, "remove", @removeGroupView
       
+  createGroupView: (model)=>
+    view = new GroupView(model)
+    name = model.get "name"
+    @groupViews[name] = view
+    console.log @groupViews
+
+  removeGroupView: (model)->
+    name = model.get "name"
+    @groupView[name] = null
+
   group: (name)->
-    console.log name
-    if @groupView.name is name
-      @groupView.render()
-    else
-      console.log name
-      @groupView.setName name
-      @groupView.members.fetch()
-      @groupView.programs.fetch()
+    if !@groupViews[name]?
+      App.navigate "/", yes
+      return
+    $(@.el).empty
+    $(@.el).html @groupViews[name].el
 
   user: ->
     @userView.render()
@@ -129,19 +150,21 @@ class MainView extends Backbone.View
     loginView.render()
 
 class LoginView extends Backbone.View
-  tagName: "div"
-  className: "col-md-6 col-md-offset-3"
 
   events:
-    "click button.login": "login"
-    "click button.signup": "signup"
-    
-  initialize: ->
+    "click .login-button": "login"
+
+  render: ->
+    html = _.template($("#login-view").html())()
+    $(@.el).append html
+    $("body").append @.el
+    $("#login-modal").modal()
 
   login: (e)->
     e.preventDefault()
-    id = $(@.el).find(".login-id").val()
-    pass = $(@.el).find(".login-pass").val()
+    id = $(@.el).find(".form-id").val()
+    pass = $(@.el).find(".form-pass").val()
+    console.log id, pass
     $.ajax
       url: "#{App.api}/login"
       type: "POST"
@@ -151,11 +174,16 @@ class LoginView extends Backbone.View
       dataType: "json"
     .done (data)=>
       if data.status is true
-        App.user.id = data.user.id
+        id = data.user.id
+        App.user.id = id
+        App.groups.url = "/api//users/#{id}/group"
         App.user.fetch()
+        App.groups.fetch()
         App.navigate "/", true
+        $("#login-modal").modal('hide')
       else
         window.alert "IDかパスワードが間違ってます"
+
 
   signup: (e)->
     e.preventDefault()
@@ -175,10 +203,6 @@ class LoginView extends Backbone.View
       else
         window.alert "既に利用されています。他のIDをご利用ください。"
 
-  render: ->
-    $(@.el).html _.template($("#login-view").html())()
-    $("#main-view").html @.el
-
 class UserView extends Backbone.View
   tagName: "div"
 
@@ -187,6 +211,20 @@ class UserView extends Backbone.View
 
   change: (model)->
     $(@.el).html _.template($("#user-view").html())
+    App.taskTupleSpace = App.linda.tuplespace("active_task")
+    App.taskTupleSpace.watch {group: App.user.get("id")}, (err, tuple)=>
+      d = tuple.data
+      v = ""
+      p = new GroupTask tuple
+      # if d.status is "eval"
+      #   v = "タスク「#{d.key}」が配信待ちです"
+      # else if d.status is "receive"
+      #   v = "#{d.id}さんが、タスク「#{d.key}」を実行中です"
+      # else if d.status is "return"
+      #   v = "#{d.id}さんが、タスク「#{d.key}」を終了しました。"
+      #   v += "返り値は「#{d.value}」です"
+      # p = $("<p></p>").html v
+      $(@.el).find(".task-list").prepend p.el
 
   render: ->
     $("#main-view").html @.el
@@ -199,84 +237,67 @@ class UserView extends Backbone.View
 
 class GroupView extends Backbone.View
   tagName: "div"
+
   events:
     "click button.add-member": "addMember"
     "submit input.form-control": "addMember"
     "click button.remove-member": "removeMember"
 
-  initialize: ->
-    # console.log "group view init"
-    # @model = new GroupModel()
-    # @listenTo @model, "change", @change
+  initialize: (@model)->
+    name = @model.get "name"
+    @render()
 
-    # console.log @model
-    @name = ""
-    @members = new GroupMembers()
+    @members = new GroupMembers name
     @listenTo @members, "reset",  @reset
     @listenTo @members, "add",    @add
     @listenTo @members, "remove", @remove
+    @members.fetch()
+    @trs = []
+    @groupTasks = {}
 
-    @programs = new Programs()
-    # @listenTo @programs, "reset",  @reset
-    @listenTo @programs, "add",    @program.add
-    @listenTo @programs, "remove", @program.remove
+    # @programs = new Programs name
+    # @listenTo @programs, "add",    @program.add
+    # @listenTo @programs, "remove", @program.remove
+    # @programs.fetch()
 
-    @taskChekcer = null
+    @activeTask = App.linda.tuplespace("active_task")
+    @activeTask.watch {group: name}, @checkActiveTask
 
-    @render()
-
-    # @listenTo @model.members, "add", @changeMember
-    # @members = new GroupMembers()
-    # @listenTo @members, "add", @changeMember
-    # @listenTo @members, "remove", @changeMember
+    @activeUser = App.linda.tuplespace("active_user")
 
   program:
     add: (model)->
       console.log "program add"
       console.log model
-      # @editor = ace.edit "editor"
-      # @editor.setTheme "ace/theme/monokai"
-      # @editor.getSession().setMode "ace/mode/javascript"
-      # @editor.setValue model.get "program"
-      # console.log @editor
 
     remove: (model)->
       console.log model
 
-  setName: (name)->
-    @members.setGroupName name
-    @programs.setGroupName name
-    console.log App
-    App.taskTupleSpace = App.linda.tuplespace("active_task")
-    console.log App.taskTupleSpace.watch {group: name}, (err, tuple)=>
-      d = tuple.data
-      v = ""
-      console.log tuple
-      if d.status is "eval"
-        v = "タスク「#{d.key}」が配信待ちです"
-      else if d.status is "receive"
-        v = "#{d.id}さんが、タスク「#{d.key}」を実行中です"
-      else if d.status is "return"
-        v = "#{d.id}さんが、タスク「#{d.key}」を終了しました。"
-        v += "返り値は「#{d.value}」です"
-      p = $("<p></p>").html v
-      $(@.el).find(".task-list").prepend p
+  checkActiveTask: (err, tuple)=>
+    console.log "check active task!!"
+    data = tuple.data
+    v = ""
+    console.log tuple
+    p = new GroupTask tuple
+    task = @groupTasks[tuple.data.cid]
+    if !task?
+      task = {}
+    task[data.status] = p
+    # if data.status is "return"
+    #   console.log task["eval"]
+    #   clearIntervalId = task["eval"].intervalId
+    #   console.log "clearIntervalId is #{clearIntervalId}"
+    $(@.el).find(".task-list").prepend p.el
 
   change: (model)->
     console.log "group model change"
     console.log model
-    $(@.el).empty()
-    # $(@.el).append _.template($("#group-view-member").html())
-    #   members: model.get("users").model
-    # $(@.el).append _.template($("#group-view-analytics").html())()
-    # $(@.el).append _.template($("#group-view-program").html())()
     @render()
 
   render: ->
     $(@.el).append _.template($("#group-view-member").html())()
     $(@.el).append _.template($("#group-view-analytics").html())()
-    $(@.el).append _.template($("#group-view-program").html())()
-    $("#main-view").html @.el
+    # $(@.el).append _.template($("#group-view-program").html())()
 
   # collection
   reset: (collection)->
@@ -284,17 +305,35 @@ class GroupView extends Backbone.View
     console.log collection
 
   add: (model)->
-    html = _.template($("#group-view-member-element").html())
-      id: model.get "id"
-    $(@.el).find("tbody.member-list").append html
+    tr = new GroupMemberTr model
+    @trs.push tr
+    $(@.el).find("tbody.member-list").append tr.el
+    # @activeUser.read {id: model.get("sid")}, (err, tuple)->
+    @activeUser.watch {id: model.get("sid")}, (err, tuple)-> #arguments.callee
+      for key, value of App.mainView.groupViews
+        for tr in value.trs
+          if tr.getId() is tuple.data.id
+            id = tuple.data.id
+            status = "unknown"
+            if tuple.data.status is "web"
+              status = "ok"
+            $(".#{id}_status").html status
+            # tr.setStatus tuple.data.status
+    # console.log 'add'
+    # console.log model
+    # html = _.template($("#group-view-member-element").html())
+    #   id: model.get "id"
+    # $(@.el).find("tbody.member-list").append html
 
   remove: (model)->
-    tbody = $(@.el).find("tbody.member-list")
-    tbody.children().each ->
-      u = $(@).find('th.member-id').html()
-      a = model.get("id")
-      if $(@).find('th.member-id').html() is model.get("id")
-        $(@).remove
+    tr = _.find @trs, (tr)->
+      return tr.getId() is model.get("id")
+    # tbody = $(@.el).find("tbody.member-list")
+    # tbody.children().each ->
+    #   u = $(@).find('th.member-id').html()
+    #   a = model.get("id")
+    #   if $(@).find('th.member-id').html() is model.get("id")
+    #     $(@).remove
 
   changeMember: (model)->
     console.log "change member"
@@ -314,17 +353,70 @@ class GroupView extends Backbone.View
         isNew: true
       @members.push user
       @members.save()
-    # @model.get("users").push user
-    # @model.save()
+      $(@.el).find(".new-member-name").val("")
+
 
   removeMember: (e)->
     e.preventDefault()
-    id = $(@.el).parent().find(".member-id").html()
+    id = $(e.currentTarget).parent().next().html()
     @members.each (u)=>
       if u.id is id
         @members.remove u
-    console.log @members
+        $(e.currentTarget).parent().parent().remove()
     @members.save()
+
+class GroupTask extends Backbone.View
+  tagName: "p"
+
+  initialize: (tuple)->
+    data = tuple.data
+    v = ""
+    @now = moment().format()
+    @type = data.status
+    @color = ""
+    if data.status is "eval"
+      v = "タスク「#{data.key}」が配信待ちです"
+      @color = "black"
+      @time = moment().format()
+    else if data.status is "receive"
+      v = "#{data.id}が、タスク「#{data.key}」を実行中です"
+      @color = "red"
+    else if data.status is "return"
+      v = "#{data.id}が、タスク「#{data.key}」を終了しました。"
+      v += "返り値は「#{data.value}」です"
+      @color = "green"
+    $(@el).html v
+    $(@el).css
+      color: @color
+
+
+class GroupMemberTr extends Backbone.View
+
+  initialize: (@model)->
+    @render()
+
+  render: ->
+    @el = _.template($("#group-view-member-element").html())
+      id: @model.get "id"
+
+  getId: ->
+    return @model.get 'id'
+
+  setStatus: (status)->
+    # console.log status
+    # console.log $(@.el).find("th.status")
+    # console.log $(@.el).find("th.status")[0]
+    # console.log $(@.el).find("th.status")[0].innerHTML = "hoge"
+    console.log $(@el)
+    $($(@.el).find("th.status")[0]).html status
+
+  setTask: (task)->
+    console.log task
+    $(@.el).find("th.task").html task
+
+  remove: ->
+    $(@.el).remove()
+
 
 class GroupCreateModalView extends Backbone.View
   el: "#group-create"
@@ -341,8 +433,9 @@ class GroupCreateModalView extends Backbone.View
       group = new GroupModel
         name: name
         users: [App.user.get "_id"]
-      group.save()
-      App.user.get("groups").push group
+      group.save
+        success: ->
+          App.groups.push group
       $(@.el).modal('toggle')
 
 class User extends Backbone.Model
@@ -353,28 +446,30 @@ class User extends Backbone.Model
 
 class Users extends Backbone.Collection
   model: User
+  # sync: ->
+  #   console.log arguments
 
 class GroupModel extends Backbone.Model
   urlRoot: "#{API}/group/"
 
-  initialize: ->
-    @members = new GroupMembers()
-
   parse: (res)->
+    @members = new GroupMembers()
     _.each res.users, (u)=>
       @members.add new User(u)
     return res
 
+class Groups extends Backbone.Collection
+  model: GroupModel
+
+  parse: (res)->
+    console.log res
+    return res
+
 class GroupMembers extends Backbone.Collection
   model: User
-  name: ""
 
-  initialize: (name)->
-    @setGroupName name
-
-  setGroupName: (name)->
-    @name = name
-    @url = "#{API}/group/#{name}/member"
+  initialize: (@name)->
+    @url = "#{API}/group/#{@name}/member"
 
   save: (options)->
     Backbone.sync "update", @, options
@@ -389,8 +484,8 @@ class ProgramModel extends Backbone.Model
 class Programs extends Backbone.Collection
   model: ProgramModel
 
-  setGroupName: (name)->
-    @url = "#{API}/group/#{name}/programs"
+  initialize: (@name)->
+    @url = "#{API}/group/#{@name}/programs"
 
 class DeviceModel extends Backbone.Model
   urlRoot: "#{API}/device/"

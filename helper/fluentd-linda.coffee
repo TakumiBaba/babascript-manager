@@ -17,7 +17,8 @@ exports.FluentdLinda = (app) ->
     socket.on "disconnect", (data)=>
       console.log "disconnect"
       name = users[socket.id]
-      linda.tuplespace(name).write
+      activeUser.write
+        id: name
         type: "status"
         status: "mobile"
       users[socket.id] = null
@@ -39,7 +40,8 @@ exports.FluentdLinda = (app) ->
       if data.tuple.type is "connect"
         name = data.tuple.name
         users[socket.id] = name
-        linda.tuplespace(name).write
+        activeUser.write
+          id: name
           type: "status"
           status: "web"
       else

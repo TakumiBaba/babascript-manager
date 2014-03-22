@@ -49,6 +49,8 @@ app.use express.session
   cookie:
     httpOnly: false
     maxAge: new Date(Date.now() + 60 * 60 * 1000)
+    # maxAge: new Date(Date.now() + 1)
+    # maxAge: new Date(Date.now() + 60 * 60 * 1000)
     
 app.use app.router
 
