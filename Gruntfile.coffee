@@ -27,13 +27,6 @@ module.exports = (grunt) ->
   grunt.loadNpmTasks 'grunt-simple-mocha'
   grunt.loadNpmTasks 'grunt-notify'
 
-  grunt.registerTask "all", [
-    'build',
-    'test',
-    'server',
-    'watch'
-  ]
-
   grunt.registerTask 'build', [
     'buildjs'
     'buildcss'
@@ -76,9 +69,9 @@ module.exports = (grunt) ->
   grunt.registerTask 'restart', 'Graceful restart', ->
     done = @async()
     pids = JSON.parse fs.readFileSync (path.resolve './.pids'), 'utf-8'
-    
-    # if pids.length < os.cpus().length
-    #   pids.push no for i in [pids.length...cpus]
+
+    if pids.length < os.cpus().length
+      pids.push no for i in [pids.length...cpus]
 
     async.eachSeries pids, (pid, next) ->
       setTimeout ->
@@ -111,9 +104,9 @@ module.exports = (grunt) ->
           break
         fs.writeFileSync (grunt.config 'server.pid'), JSON.stringify pids
 
-      # for i in [0...cpus]
-      worker = cluster.fork envs
-      pids.push worker.process.pid
+      for i in [0...cpus]
+        worker = cluster.fork envs
+        pids.push worker.process.pid
       fs.writeFileSync (grunt.config 'server.pid'), JSON.stringify pids
 
     else
@@ -217,7 +210,7 @@ module.exports = (grunt) ->
     coffee:
       dist:
         options:
-          sourceMap: no
+          sourceMap: yes
           sourceMapDir: 'assets/'
         files: [{
           expand: yes
