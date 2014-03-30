@@ -15,9 +15,10 @@ class Application extends Backbone.Router
 
   initialize: ->
     $.ajax
-      url: "#{@api}/islogin"
-    .done (data) =>
-      console.log "app initialize done"
+      url: "#{API}/session"
+      type: "POST"
+    .done (data)=>
+      console.log data
       @user = new User()
       @groups = new Groups()
       @linda = new Linda().connect io.connect "http://localhost:3000"
@@ -166,17 +167,18 @@ class LoginView extends Backbone.View
     pass = $(@.el).find(".form-pass").val()
     console.log id, pass
     $.ajax
-      url: "#{App.api}/login"
+      url: "#{API}/session"
       type: "POST"
       data:
-        id: id
-        pass: pass
+        username: id
+        password: pass
       dataType: "json"
     .done (data)=>
+      console.log data
       if data.status is true
-        id = data.user.id
+        id = data.id
         App.user.id = id
-        App.groups.url = "/api//users/#{id}/group"
+        App.groups.url = "/api/users/#{id}/group"
         App.user.fetch()
         App.groups.fetch()
         App.navigate "/", true
@@ -318,12 +320,6 @@ class GroupView extends Backbone.View
             if tuple.data.status is "web"
               status = "ok"
             $(".#{id}_status").html status
-            # tr.setStatus tuple.data.status
-    # console.log 'add'
-    # console.log model
-    # html = _.template($("#group-view-member-element").html())
-    #   id: model.get "id"
-    # $(@.el).find("tbody.member-list").append html
 
   remove: (model)->
     tr = _.find @trs, (tr)->

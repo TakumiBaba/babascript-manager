@@ -1,5 +1,7 @@
 exports.http = (app) ->
 
+  passport = require "passport"
+
   Content = (app.get 'events').Content app
   User = (app.get 'events').User app
   Notification = (app.get 'events').Notification app
@@ -8,14 +10,30 @@ exports.http = (app) ->
   View = (app.get 'events').View app
   Linda = (app.get 'events').Linda app
   Program = (app.get 'events').Program app
+  Session = (app.get 'events').Session app
 
 
 ## API
 # login系
+
+  # app.post "/api/login", Session.login
+  auth = passport.authenticate "local",
+    successRedirect: "/api/session/success"
+    failureRedirect: "/api/session/failure"
+    failureFlash: false
+  # app.post "/api/session", Session.login
+  app.get "/api/session", Session.login
+  app.post "/api/session", auth
+  # app.get "/api/session", auth
+  app.get "/api/session/authenticate", auth
+  app.get "/api/session/success", Session.success
+  app.get "/api/session/failure", Session.failure
+
+  app.get "/api/session/isLogin", Session.isLogin
   
   app.get "/api/islogin", Login.isLogin
   app.post "/api/signup", User.create
-  app.post "/api/login", Login.login
+  # app.post "/api/login", Login.login
 
 # Device系
   app.post "/api/device/login", Login.device.login
@@ -56,16 +74,18 @@ exports.http = (app) ->
   app.get "/api/group/:name/programs", Program.read
   app.get "/api/program/:id", Program.read
 
-# Noraml Routing
-  app.get "/(groups|login)(/*)", View.index
-  app.get "/", View.index
-
 # LindaWrite
   app.post "/api/linda/:name", Linda.write
   app.get "/api/linda/:name", Linda.read
 
 # DEBUG
   app.get "/debug/user/initialize", User.DEBUG.createUser
+
+# Noraml Routing
+  app.get "/", View.index
+  app.get "/u(/*)", View.index
+  app.get "/login(/*)", View.index
+  app.get "/groups(/*)", View.index
 
 exports.ws = (app, io)->
   Content = (app.get 'events').Content app

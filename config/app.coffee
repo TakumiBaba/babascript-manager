@@ -1,15 +1,18 @@
 # Dependency
 
 fs = require 'fs'
+AWS = require 'aws-sdk'
 path = require 'path'
 http = require 'http'
 debug = require('debug')('coah')
 express = require 'express'
+passport = require "passport"
 mongoose = require 'mongoose'
-MongoStore = (require "connect-mongo") express
 direquire = require 'direquire'
-AWS = require 'aws-sdk'
-
+MongoStore = (require "connect-mongo") express
+RedisStore = (require "connect-redis") express
+LocalStrategy = require("passport-local").Strategy
+redis = require("redis").createClient()
 
 # Database
 
@@ -19,8 +22,6 @@ if process.env.MONGO
 
 AWS.config.loadFromPath path.resolve 'config', 'aws.json'
 
-# Application
-
 app = exports.app = express()
 app.disable 'x-powerd-by'
 app.set 'events', direquire path.resolve 'events'
@@ -29,6 +30,7 @@ app.set 'helper', direquire path.resolve 'helper'
 app.set 'aws', AWS
 app.set 'views', path.resolve 'views'
 app.set 'view engine', 'jade'
+
 app.use express.favicon()
 app.use express.logger 'dev' unless process.env.NODE_ENV is 'test'
 app.use express.json()
@@ -36,22 +38,40 @@ app.use express.urlencoded()
 app.use express.cookieParser()
 app.use express.methodOverride()
 
+Session = app.get("events").Session(app)
+passport.serializeUser Session.serializeUser
+passport.deserializeUser Session.deserializeUser
+passport.use Session.localStrategy()
+
 app.use (req, res, next)->
-  res.setHeader "Access-Control-Allow-Origin", "*"
+  url = "http://client.manager.localhost"
+  res.setHeader "Access-Control-Allow-Origin", url
+  res.setHeader "Access-Control-Allow-Credentials", true
+  res.setHeader "Access-Control-Request-Method", "*"
   next()
 
 app.use express.session
-  secret: path.resolve("config", "env.json").secret || "hogefuga"
-  store: new MongoStore
-    db: 'session'
-    host: 'localhost'
-    clear_interval: 60*60*10
+  store: new RedisStore
+    host: "localhost"
+    client: redis
+    db: 1
+    prefix: "session:"
   cookie:
     httpOnly: false
-    maxAge: new Date(Date.now() + 60 * 60 * 1000)
-    # maxAge: new Date(Date.now() + 1)
-    # maxAge: new Date(Date.now() + 60 * 60 * 1000)
-    
+    maxAge: 1000*60*60*24*7
+  secret: "cat"
+# app.use express.session
+#   secret: "hogefuga"
+#   store: new MongoStore
+#     db: 'session'
+#     host: 'localhost'
+#     clear_interval: 60*60*1000
+#   cookie:
+#     httpOnly: false
+#     maxAge: new Date(Date.now() + 60 * 60 * 1000)
+
+app.use passport.initialize()
+app.use passport.session()
 app.use app.router
 
 if process.env.NODE_ENV is 'development'
@@ -64,8 +84,6 @@ else
 
 if process.env.NODE_ENV isnt 'production'
   debug "using error handler"
-
-
 
 # Server
   

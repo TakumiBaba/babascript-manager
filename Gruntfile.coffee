@@ -34,6 +34,10 @@ module.exports = (grunt) ->
     'buildstatic'
   ]
 
+  grunt.registerTask 'dev', [
+    'watch', 'server'
+  ]
+
   grunt.registerTask 'default', [
     'build', 'test', 'watch'
   ]
@@ -69,9 +73,8 @@ module.exports = (grunt) ->
   grunt.registerTask 'restart', 'Graceful restart', ->
     done = @async()
     pids = JSON.parse fs.readFileSync (path.resolve './.pids'), 'utf-8'
-
-    if pids.length < os.cpus().length
-      pids.push no for i in [pids.length...cpus]
+    # if pids.length < os.cpus().length
+    #   pids.push no for i in [pids.length...cpus]
 
     async.eachSeries pids, (pid, next) ->
       setTimeout ->
@@ -90,7 +93,8 @@ module.exports = (grunt) ->
 
     if cluster.isMaster
       envs = grunt.config 'server.env'
-      cpus = os.cpus().length
+      cpus = 2
+      # cpus = os.cpus().length
 
       process.on 'SIGINT', ->
         fs.unlinkSync grunt.config 'server.pid'

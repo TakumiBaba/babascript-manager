@@ -3,6 +3,8 @@ debug = require('debug')('coah:models:user')
 fs = require "fs"
 path = require "path"
 Schema = mongoose.Schema
+Crypto = require("crypto")
+# Shasum = require("crypto").createHash("sha256")
 
 # UserModel = new Schema
 #   uuid: type: String
@@ -48,6 +50,13 @@ ActiveTask = new Schema
   tuplespace: type: String
   task: type: Schema.Types.Mixed
 
+UserModel.methods.comparePassword = (password, callback)->
+  shasum = Crypto.createHash "sha256"
+  p = shasum.update(password).digest("hex")
+  if @password is p
+    return true
+  else
+    return false
 
 NotificationModel.statics.send = (uuid, message)->
   @getOrCreateEndpoint uuid, (endpoint)->

@@ -13,10 +13,9 @@ socketioClient = require("socket.io-client")
 
 describe 'coah', ->
 
-  it 'sohuld be index', (done) ->
-    request(app).get('/').expect(200).end done
+  
+  # it 'sohuld be index', (done) ->
+  #   request(app).get('/').expect(200).end done
 
 
 describe 'websocket', ->
-
-  

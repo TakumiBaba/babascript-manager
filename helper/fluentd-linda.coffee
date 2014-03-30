@@ -12,8 +12,6 @@ exports.FluentdLinda = (app) ->
   users = {}
 
   linda.io.on "connection", (socket)=>
-    console.log "connect!"
-    console.log socket.id
     socket.on "disconnect", (data)=>
       console.log "disconnect"
       name = users[socket.id]
