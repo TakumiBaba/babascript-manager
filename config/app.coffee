@@ -47,7 +47,7 @@ app.use (req, res, next)->
   url = "http://client.manager.localhost"
   res.setHeader "Access-Control-Allow-Origin", url
   res.setHeader "Access-Control-Allow-Credentials", true
-  res.setHeader "Access-Control-Request-Method", "*"
+  res.setHeader "Access-Control-Request-Method", "POST PUT GET"
   next()
 
 app.use express.session

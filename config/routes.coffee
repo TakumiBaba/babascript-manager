@@ -21,10 +21,9 @@ exports.http = (app) ->
     successRedirect: "/api/session/success"
     failureRedirect: "/api/session/failure"
     failureFlash: false
-  # app.post "/api/session", Session.login
   app.get "/api/session", Session.login
+  app.post "/api/session", Session.login
   app.post "/api/session", auth
-  # app.get "/api/session", auth
   app.get "/api/session/authenticate", auth
   app.get "/api/session/success", Session.success
   app.get "/api/session/failure", Session.failure
@@ -32,6 +31,7 @@ exports.http = (app) ->
   app.get "/api/session/isLogin", Session.isLogin
   
   app.get "/api/islogin", Login.isLogin
+  app.post "/api/session/login", auth
   app.post "/api/signup", User.create
   # app.post "/api/login", Login.login
 
